@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ravindra Bhavan Margao - Interactive Seating Chart</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'tier1': '#f43f5e',     /* Vibrant Pink */
+                        'tier1-bg': '#fce7f3',  /* Soft Pink Light */
+                        'tier2': '#10b981',     /* Emerald Green */
+                        'tier2-bg': '#d1fae5',  /* Soft Green Light */
+                        'tier3': '#eab308',     /* Amber/Yellow */
+                        'tier3-bg': '#fef3c7',  /* Soft Yellow Light */
+                        'occupied': '#64748b',  /* Slate Gray */
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom scrollbar for seating arena */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+            border-radius: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        /* Seat styles & micro-interactions */
+        .seat {
+            width: 22px;
+            height: 22px;
+            font-size: 9px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+            border: 1px solid rgba(0,0,0,0.08);
+        }
+
+        .seat:hover {
+            transform: scale(1.35) translateY(-2px);
+            z-index: 20;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+
+        .seat.tier-1 {
+            background-color: #fce7f3;
+            color: #831843;
+            border-color: #fbcfe8;
+        }
+        .seat.tier-1:hover {
+            background-color: #f43f5e;
+            color: #ffffff;
+        }
+
+        .seat.tier-2 {
+            background-color: #d1fae5;
+            color: #064e3b;
+            border-color: #a7f3d0;
+        }
+        .seat.tier-2:hover {
+            background-color: #10b981;
+            color: #ffffff;
+        }
+
+        .seat.tier-3 {
+            background-color: #fef3c7;
+            color: #713f12;
+            border-color: #fde68a;
+        }
+        .seat.tier-3:hover {
+            background-color: #eab308;
+            color: #ffffff;
+        }
+
+        /* Filtered/Matched Seat Highlight Animation */
+        .seat.highlighted {
+            animation: pulse-ring 1.2s infinite;
+            transform: scale(1.3);
+            z-index: 25;
+            outline: 2px solid #38bdf8;
+            outline-offset: 1px;
+        }
+
+        .seat.dimmed {
+            opacity: 0.15;
+            filter: grayscale(80%);
+        }
+
+        /* =========================================================
+   TIER 1 (PINK) - Front Center (Rows A-J)
+   ========================================================= */
+/* Unoccupied: Vibrant Pink (#f43f5e) */
+.seat.tier-1 {
+    background-color: #f43fe2;
+    color: #ffffff;
+    border-color: #e11d9c;
+}
+
+/* Assured / Unpaid: Medium Light Pink */
+.seat.tier-1.assured {
+    background-color: #fce7f3 !important;
+    color: #9d174d !important;
+    border-color: #fbcfe8 !important;
+}
+
+/* Occupied / Paid: Extra Light Pink */
+.seat.tier-1.occupied {
+    background-color: #fce7f3 !important;
+    color: #9d174d !important;
+    border-color: #fbcfe8 !important;
+}
+
+
+/* =========================================================
+   TIER 2 (GREEN) - Front Sides (A-J) & Rear Center (K-P)
+   ========================================================= */
+/* Unoccupied: Vibrant Emerald Green (#10b981) */
+.seat.tier-2 {
+    background-color: #10b981;
+    color: #ffffff;
+    border-color: #059669;
+}
+
+/* Assured / Unpaid: Medium Light Mint Green */
+.seat.tier-2.assured {
+    background-color: #d1fae5 !important;
+    color: #065f46 !important;
+    border-color: #a7f3d0 !important;
+}
+
+/* Occupied / Paid: Extra Light Mint Green */
+.seat.tier-2.occupied {
+    background-color: #d1fae5 !important;
+    color: #065f46 !important;
+    border-color: #a7f3d0 !important;
+}
+
+
+/* =========================================================
+   TIER 3 (YELLOW) - Rear Sides (K-BB) & Rear Center (Q-BB)
+   ========================================================= */
+/* Unoccupied: Vibrant Golden Yellow (#eab308) */
+.seat.tier-3 {
+    background-color: #eab308;
+    color: #ffffff;
+    border-color: #ca8a04;
+}
+
+/* Assured / Unpaid: Medium Light Soft Yellow */
+.seat.tier-3.assured {
+    background-color: #fef9c3 !important;
+    color: #854d0e !important;
+    border-color: #fef08a !important;
+}
+
+/* Occupied / Paid: Extra Light Soft Yellow */
+.seat.tier-3.occupied {
+    background-color: #fef9c3 !important;
+    color: #854d0e !important;
+    border-color: #fef08a !important;
+}
+        /* Tier 1 Occupied (Soft Light Pink) */
+/* .seat.tier-1.occupied {
+    background-color: #fbcfe8 !important;
+    color: #9d174d !important;
+    border-color: #f472b6 !important;
+}
+
+.seat.tier-2.occupied {
+    background-color: #a7f3d0 !important;
+    color: #065f46 !important;
+    border-color: #34d399 !important;
+}
+
+.seat.tier-3.occupied {
+    background-color: #fef08a !important;
+    color: #854d0e !important;
+    border-color: #facc15 !important;
+}
+*/
+
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); }
+            70% { box-shadow: 0 0 0 6px rgba(56, 189, 248, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+        }
+
+        /* Responsive stage curve */
+        .stage-banner {
+            background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+            box-shadow: 0 8px 25px -5px rgba(14, 165, 233, 0.4);
+            clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%);
+        }
+
+        .passage-strip {
+            background: repeating-linear-gradient(
+                45deg,
+                #334155,
+                #334155 10px,
+                #1e293b 10px,
+                #1e293b 20px
+            );
+        }
+
+        /* Keep the seating viewport horizontally scrollable on narrow screens */
+        #viewport {
+            display: block;
+            flex: 1 1 0%;
+            min-width: 0;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: scroll;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+            touch-action: pan-y;
+            position: relative;
+        }
+
+        /* Preserve the hall's full layout width so it can be swiped horizontally */
+        #hallContainer {
+            width: max-content;
+            min-width: 960px;
+            flex-shrink: 0;
+            transform-origin: top left;
+        }
+
+        #hallContainer {
+            flex-shrink: 0;
+            transform-origin: top left;
+        }
+
+        /* Seat row label styling */
+        .row-label {
+            width: 28px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-align: center;
+        }
+
+
+        /* Mobile readability: enlarge text and seat labels without changing the layout or behavior */
+        @media (max-width: 640px) {
+            body {
+                font-size: 16px;
+                -webkit-text-size-adjust: 100%;
+            }
+
+            .text-xs {
+                font-size: 0.875rem !important;
+                line-height: 1.35rem !important;
+            }
+
+            .text-\[10px\] {
+                font-size: 0.75rem !important;
+                line-height: 1.1rem !important;
+            }
+
+            .text-\[11px\] {
+                font-size: 0.8125rem !important;
+                line-height: 1.2rem !important;
+            }
+
+            .text-\[8px\] {
+                font-size: 0.6875rem !important;
+            }
+
+            .text-sm {
+                font-size: 1rem !important;
+                line-height: 1.5rem !important;
+            }
+
+            .text-lg {
+                font-size: 1.25rem !important;
+                line-height: 1.75rem !important;
+            }
+
+            .seat {
+                width: 26px;
+                height: 26px;
+                font-size: 11px;
+            }
+
+            .row-label {
+                font-size: 13px;
+            }
+
+            input, select, button {
+                font-size: 0.875rem;
+            }
+        }
+
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-sky-500 selection:text-white">
+
+    <!-- TOP HEADER -->
+    <header class="bg-slate-900/90 border-b border-slate-800 backdrop-blur sticky top-0 z-40 px-4 py-3 sm:px-6">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-sky-500/20">
+                    <i class="fa-solid fa-masks-theater text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                        Ravindra Bhavan Margao
+                        <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">Seating Chart</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Total Capacity: <span class="text-sky-400 font-medium">1,054 Seats</span> (15 Reserved A5-A19)</p>
+                </div>
+            </div>
+
+            <!-- CONTROLS: SEARCH & FILTER -->
+            <div class="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+                <!-- Search Input -->
+                <div class="relative flex-1 sm:w-56">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="searchInput" placeholder="Search Seat (e.g. A-15, M-22)..." 
+                           class="w-full bg-slate-800/90 text-xs text-slate-100 placeholder-slate-400 pl-8 pr-3 py-2 rounded-lg border border-slate-700 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition">
+                </div>
+
+                <!-- Tier Filter Dropdown -->
+                <select id="tierFilter" class="bg-slate-800/90 text-xs text-slate-200 px-3 py-2 rounded-lg border border-slate-700 focus:outline-none focus:border-sky-500 transition">
+                    <option value="ALL">All Tiers</option>
+                    <option value="TIER-1">Tier 1 (Pink)</option>
+                    <option value="TIER-2">Tier 2 (Green)</option>
+                    <option value="TIER-3">Tier 3 (Yellow)</option>
+                </select>
+
+                <!-- Zoom Controls -->
+                <div class="flex items-center bg-slate-800 rounded-lg border border-slate-700 p-0.5">
+                    <button id="zoomOut" class="p-1.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition" title="Zoom Out"><i class="fa-solid fa-minus text-xs"></i></button>
+                    <span id="zoomLevel" class="text-xs text-slate-400 font-mono px-2">100%</span>
+                    <button id="zoomIn" class="p-1.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition" title="Zoom In"><i class="fa-solid fa-plus text-xs"></i></button>
+                    <button id="zoomReset" class="p-1.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition border-l border-slate-700 ml-0.5" title="Reset Zoom"><i class="fa-solid fa-rotate-left text-xs"></i></button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- LEGEND & TIER STATS BAR -->
+    <section class="bg-slate-900/60 border-b border-slate-800/80 px-4 py-2.5">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs">
+            <!-- Tiers Legend -->
+            <div class="flex flex-wrap items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <span class="w-3.5 h-3.5 rounded bg-pink-200 border border-pink-400 inline-block"></span>
+                    <span class="font-medium text-pink-300">Tier 1</span>
+                    <span class="text-slate-500 text-[10px]">(Rows A-J Center)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3.5 h-3.5 rounded bg-emerald-200 border border-emerald-400 inline-block"></span>
+                    <span class="font-medium text-emerald-300">Tier 2</span>
+                    <span class="text-slate-500 text-[10px]">(A-J Sides & K-P Center)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3.5 h-3.5 rounded bg-amber-200 border border-amber-400 inline-block"></span>
+                    <span class="font-medium text-amber-300">Tier 3</span>
+                    <span class="text-slate-500 text-[10px]">(K-BB Sides & Q-BB Center)</span>
+                </div>
+            </div>
+
+            <!-- Status Indicator Summary -->
+            <div class="flex items-center gap-4 text-slate-400 border-t sm:border-t-0 border-slate-800 pt-2 sm:pt-0 w-full sm:w-auto justify-end">
+                <div class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                    <span>Unoccupied</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+                    <span>Occupied</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                    <span>Reserved</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- MAIN ARENA CONTAINER -->
+    <main class="flex-1 min-w-0 overflow-hidden relative flex flex-col">
+        
+        <!-- SCROLLABLE SEATING MAP AREA -->
+        <!-- AFTER -->
+<div id="viewport" class="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar p-6 flex justify-start items-start bg-slate-950">
+            <div id="hallContainer" class="transition-transform duration-200 ease-out origin-top flex flex-col items-center min-w-[960px] pb-16">
+                
+                <!-- STAGE AREA -->
+                <div class="w-full max-w-3xl mb-8 flex flex-col items-center">
+                    <div class="stage-banner w-full h-10 rounded-t-xl flex items-center justify-center text-white font-bold tracking-widest text-sm uppercase shadow-lg">
+                        <i class="fa-solid fa-star text-xs mr-2 text-amber-300"></i> STAGE <i class="fa-solid fa-star text-xs ml-2 text-amber-300"></i>
+                    </div>
+                    <div class="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Front Row Facing</div>
+                </div>
+
+                <!-- FRONT SECTION (ROWS A - J) -->
+                <div class="w-full bg-slate-900/40 p-4 rounded-2xl border border-slate-800/80 mb-6 backdrop-blur-sm shadow-xl">
+                    <div class="text-xs font-semibold text-slate-400 mb-3 px-2 flex items-center justify-between border-b border-slate-800/60 pb-1.5">
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-circle-notch text-sky-400 text-[10px]"></i> Front Section (Rows A - J)</span>
+                        <span class="text-[10px] text-slate-500">Stage Level Access</span>
+                    </div>
+
+                    <!-- FRONT ROWS GRID CONTAINER -->
+                    <div id="frontSection" class="flex flex-col gap-1.5 items-center">
+                        <!-- Dynamic Rows Generated by JS -->
+                    </div>
+                </div>
+
+                <!-- PASSAGE / MAIN AISLE SEPARATOR -->
+                <div class="w-full my-4 py-3 rounded-xl passage-strip border border-slate-800 flex items-center justify-between px-8 text-slate-400 font-bold tracking-wider text-xs uppercase shadow-inner">
+                    <div class="flex items-center gap-2 text-rose-400">
+                        <i class="fa-solid fa-door-open"></i> EXIT
+                    </div>
+                    <div class="flex items-center gap-3 text-slate-300">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        <span class="tracking-widest font-extrabold text-white bg-slate-800 px-4 py-1 rounded-md border border-slate-700 shadow">PASSAGE AISLE</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </div>
+                    <div class="flex items-center gap-2 text-emerald-400">
+                        ENTRANCE <i class="fa-solid fa-right-to-bracket"></i>
+                    </div>
+                </div>
+
+                <!-- REAR SECTION (ROWS K - BB) -->
+                <div class="w-full bg-slate-900/40 p-4 rounded-2xl border border-slate-800/80 backdrop-blur-sm shadow-xl">
+                    <div class="text-xs font-semibold text-slate-400 mb-3 px-2 flex items-center justify-between border-b border-slate-800/60 pb-1.5">
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-circle-notch text-amber-400 text-[10px]"></i> Rear Section (Rows K - BB)</span>
+                        <span class="text-[10px] text-slate-500">Balcony Tier Access</span>
+                    </div>
+
+                    <!-- REAR ROWS GRID CONTAINER -->
+                    <div id="rearSection" class="flex flex-col gap-1.5 items-center">
+                        <!-- Dynamic Rows Generated by JS -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL / POPUP DIALOG FOR SEAT DETAILS -->
+    <div id="seatModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden transition-opacity duration-200 opacity-0">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden transform scale-95 transition-transform duration-200" id="modalCard">
+            
+            <!-- Modal Header -->
+            <div class="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+                <div class="flex items-center gap-3">
+                    <div id="modalSeatBadge" class="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg shadow-md border">
+                        A-15
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-white text-base" id="modalSeatTitle">Seat Details</h3>
+                        <p class="text-xs text-slate-400" id="modalSeatSubtitle">Ravindra Bhavan Margao</p>
+                    </div>
+                </div>
+                <button id="closeModal" class="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Content Body -->
+            <div class="p-5 space-y-4">
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700/50">
+                        <span class="text-slate-400 block mb-0.5">Tier Pricing</span>
+                        <span id="modalTier" class="font-semibold text-white text-sm">Tier 1</span>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700/50">
+                        <span class="text-slate-400 block mb-0.5">Hall Section</span>
+                        <span id="modalSection" class="font-semibold text-white text-sm">Middle Block</span>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700/50">
+                        <span class="text-slate-400 block mb-0.5">Row</span>
+                        <span id="modalRow" class="font-semibold text-white text-sm">Row A</span>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700/50">
+                        <span class="text-slate-400 block mb-0.5">Status</span>
+                        <span id="modalStatus" class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            Unoccupied
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Sales Management Reference -->
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+                    <div class="flex items-center justify-between text-xs text-slate-400">
+                        <span>Database Reference ID:</span>
+                        <span id="modalRefId" class="font-mono text-sky-400">RBM-A15</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs text-slate-400">
+                        <span>Issued To:</span>
+                        <span id="modalIssuedTo" class="text-slate-300 italic">Not Issued Yet</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 bg-slate-900/80 border-t border-slate-800 flex justify-end">
+                <button id="modalCloseBtn" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold shadow-md transition">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT ARCHITECTURE -->
+    <script>
+        /**
+         * Seating Data Architecture for Ravindra Bhavan Margao
+         * Total capacity: ~1054 seats
+         */
+
+        // Row definitions based on original hall blueprint image
+        const frontRows = [
+            { row: 'A', left: 7, mid: 12, right: 7, leftStart: 26, midStart: 19, rightStart: 7 }, // Reserved seats A5-A19
+            { row: 'B', left: 7, mid: 10, right: 7, leftStart: 24, midStart: 17, rightStart: 7 },
+            { row: 'C', left: 7, mid: 12, right: 7, leftStart: 26, midStart: 19, rightStart: 7 },
+            { row: 'D', left: 8, mid: 12, right: 8, leftStart: 28, midStart: 20, rightStart: 8 },
+            { row: 'E', left: 8, mid: 14, right: 8, leftStart: 30, midStart: 22, rightStart: 8 },
+            { row: 'F', left: 8, mid: 14, right: 8, leftStart: 28, midStart: 20, rightStart: 8 },
+            { row: 'G', left: 8, mid: 14, right: 8, leftStart: 30, midStart: 22, rightStart: 8 },
+            { row: 'H', left: 9, mid: 14, right: 9, leftStart: 32, midStart: 23, rightStart: 9 },
+            { row: 'I', left: 9, mid: 16, right: 9, leftStart: 34, midStart: 25, rightStart: 9 },
+            { row: 'J', left: 9, mid: 16, right: 9, leftStart: 34, midStart: 25, rightStart: 9 }
+        ];
+
+        const rearRows = [
+            { row: 'K', left: 11, mid: 18, right: 7, leftStart: 36, midStart: 25, rightStart: 7 },
+            { row: 'L', left: 11, mid: 18, right: 7, leftStart: 40, midStart: 29, rightStart: 11 },
+            { row: 'M', left: 11, mid: 20, right: 8, leftStart: 42, midStart: 31, rightStart: 11 },
+            { row: 'N', left: 11, mid: 20, right: 8, leftStart: 42, midStart: 31, rightStart: 11 },
+            { row: 'O', left: 12, mid: 20, right: 8, leftStart: 44, midStart: 32, rightStart: 12 },
+            { row: 'P', left: 12, mid: 20, right: 8, leftStart: 44, midStart: 32, rightStart: 12 },
+            { row: 'Q', left: 12, mid: 22, right: 8, leftStart: 46, midStart: 34, rightStart: 12 },
+            { row: 'R', left: 12, mid: 22, right: 8, leftStart: 46, midStart: 34, rightStart: 12 },
+            { row: 'S', left: 12, mid: 22, right: 8, leftStart: 46, midStart: 34, rightStart: 12 },
+            { row: 'T', left: 12, mid: 22, right: 8, leftStart: 46, midStart: 34, rightStart: 12 },
+            { row: 'U', left: 12, mid: 24, right: 8, leftStart: 48, midStart: 36, rightStart: 12 },
+            { row: 'V', left: 12, mid: 24, right: 8, leftStart: 48, midStart: 36, rightStart: 12 },
+            { row: 'W', left: 11, mid: 26, right: 8, leftStart: 48, midStart: 37, rightStart: 11 },
+            { row: 'X', left: 11, mid: 25, right: 8, leftStart: 47, midStart: 36, rightStart: 11 },
+            { row: 'Y', left: 11, mid: 26, right: 8, leftStart: 47, midStart: 36, rightStart: 10 },
+            { row: 'Z', left: 11, mid: 28, right: 8, leftStart: 47, midStart: 36, rightStart: 10 },
+            { row: 'AA', left: 10, mid: 28, right: 8, leftStart: 48, midStart: 38, rightStart: 10 },
+            { row: 'BB', left: 6, mid: 28, right: 6, leftStart: 12, midStart: 0, rightStart: 6 }
+        ];
+
+        // Global State
+        let zoomScale = window.matchMedia('(max-width: 640px)').matches ? 0.6 : 1.0;
+        const allSeatsData = new Map(); // Key: Seat ID (e.g., "A-15"), Value: Details Object
+
+        // DOM Elements
+        const frontSectionEl = document.getElementById('frontSection');
+        const rearSectionEl = document.getElementById('rearSection');
+        const hallContainerEl = document.getElementById('hallContainer');
+        const searchInput = document.getElementById('searchInput');
+        const tierFilter = document.getElementById('tierFilter');
+        
+        // Modal Elements
+        const seatModal = document.getElementById('seatModal');
+        const modalCard = document.getElementById('modalCard');
+        const closeModalBtn = document.getElementById('closeModal');
+        const modalCloseBtn = document.getElementById('modalCloseBtn');
+        const modalSeatBadge = document.getElementById('modalSeatBadge');
+        const modalSeatTitle = document.getElementById('modalSeatTitle');
+        const modalTier = document.getElementById('modalTier');
+        const modalSection = document.getElementById('modalSection');
+        const modalRow = document.getElementById('modalRow');
+        const modalStatus = document.getElementById('modalStatus');
+        const modalRefId = document.getElementById('modalRefId');
+
+        /**
+         * Tier Pricing Classifier Rule
+         */
+        function getSeatTier(row, section) {
+            const isFront = ['A','B','C','D','E','F','G','H','I','J'].includes(row);
+            
+            if (isFront) {
+                if (section === 'middle') return { code: 'TIER-1', name: 'Tier 1', class: 'tier-1', color: '#f43f5e', bgClass: 'bg-pink-100 text-pink-800 border-pink-300' };
+                return { code: 'TIER-2', name: 'Tier 2', class: 'tier-2', color: '#10b981', bgClass: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
+            } else {
+                // Rear Section (K to BB)
+                const isKP = ['K','L','M','N','O','P'].includes(row);
+                if (isKP && section === 'middle') {
+                    return { code: 'TIER-2', name: 'Tier 2', class: 'tier-2', color: '#10b981', bgClass: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
+                }
+                return { code: 'TIER-3', name: 'Tier 3', class: 'tier-3', color: '#eab308', bgClass: 'bg-amber-100 text-amber-800 border-amber-300' };
+            }
+        }
+
+        /**
+         * Render individual Row UI
+         */
+        function createRowElement(rowData) {
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'flex items-center gap-3 my-0.5';
+
+            // Left Row Label
+            const leftLabel = document.createElement('div');
+            leftLabel.className = 'row-label';
+            leftLabel.innerText = rowData.row;
+            rowDiv.appendChild(leftLabel);
+
+            // 1. LEFT WING BLOCK
+            const leftBlock = document.createElement('div');
+            leftBlock.className = 'flex items-center gap-1';
+            for (let i = 0; i < rowData.left; i++) {
+                const num = rowData.leftStart - i;
+                const seatEl = createSeatButton(rowData.row, num, 'left');
+                leftBlock.appendChild(seatEl);
+            }
+            rowDiv.appendChild(leftBlock);
+
+            // Aisle Spacer Left
+            const aisleLeft = document.createElement('div');
+            aisleLeft.className = 'w-6 h-4 flex items-center justify-center text-[8px] text-slate-700 font-mono';
+            rowDiv.appendChild(aisleLeft);
+
+            // 2. MIDDLE BLOCK
+            const midBlock = document.createElement('div');
+            midBlock.className = 'flex items-center gap-1';
+            for (let i = 0; i < rowData.mid; i++) {
+                const num = rowData.midStart - i;
+                const seatEl = createSeatButton(rowData.row, num, 'middle');
+                midBlock.appendChild(seatEl);
+            }
+            rowDiv.appendChild(midBlock);
+
+            // Aisle Spacer Right
+            const aisleRight = document.createElement('div');
+            aisleRight.className = 'w-6 h-4 flex items-center justify-center text-[8px] text-slate-700 font-mono';
+            rowDiv.appendChild(aisleRight);
+
+            // 3. RIGHT WING BLOCK
+            const rightBlock = document.createElement('div');
+            rightBlock.className = 'flex items-center gap-1';
+            for (let i = 0; i < rowData.right; i++) {
+                const num = rowData.rightStart - i;
+                const seatEl = createSeatButton(rowData.row, num, 'right');
+                rightBlock.appendChild(seatEl);
+            }
+            rowDiv.appendChild(rightBlock);
+
+            // Right Row Label
+            const rightLabel = document.createElement('div');
+            rightLabel.className = 'row-label';
+            rightLabel.innerText = rowData.row;
+            rowDiv.appendChild(rightLabel);
+
+            return rowDiv;
+        }
+
+        /**
+         * Create Single Interactive Seat Element
+         */
+        function createSeatButton(row, number, section) {
+            const seatId = `${row}-${number}`;
+            const tierInfo = getSeatTier(row, section);
+            
+            // Check reserved condition (A5 to A19 as specified on venue blueprint)
+            const isReserved = (row === 'A' && number >= 5 && number <= 19);
+            const status = isReserved ? 'Reserved' : 'Unoccupied';
+
+            // Store in global memory map for instant lookup
+            const seatObj = {
+                id: seatId,
+                row: row,
+                number: number,
+                section: section === 'middle' ? 'Middle Block' : (section === 'left' ? 'Left Wing' : 'Right Wing'),
+                tier: tierInfo,
+                status: status
+            };
+            allSeatsData.set(seatId, seatObj);
+
+            // Create Button
+            const btn = document.createElement('button');
+            btn.className = `seat ${tierInfo.class}`;
+            btn.dataset.id = seatId;
+            btn.dataset.tier = tierInfo.code;
+            btn.innerText = number;
+            btn.title = `Seat ${seatId} (${tierInfo.name}) - ${status}`;
+
+            if (isReserved) {
+                btn.classList.add('opacity-40', 'cursor-not-allowed');
+                btn.style.backgroundColor = '#f43f5e';
+                btn.style.color = '#ffffff';
+            }
+
+            // Click Interaction
+            btn.addEventListener('click', () => openSeatModal(seatObj));
+
+            return btn;
+        }
+
+        /**
+         * Open Detail Modal Dialog
+         */
+        /**
+ * Updated Modal Display Handler
+ */
+function openSeatModal(seat) {
+    modalSeatBadge.innerText = seat.id;
+    modalSeatBadge.className = `w-12 h-12 rounded-xl flex items-center justify-center font-bold text-base shadow-md border ${seat.tier.bgClass}`;
+    
+    modalSeatTitle.innerText = `Seat ${seat.id}`;
+    modalTier.innerText = seat.tier.name;
+    modalSection.innerText = seat.section;
+    modalRow.innerText = `Row ${seat.row}`;
+    modalRefId.innerText = `RBM-${seat.row}${seat.number}`;
+
+    // Update Issued To details
+    const modalIssuedTo = document.getElementById('modalIssuedTo');
+    if (modalIssuedTo) {
+        modalIssuedTo.innerText = seat.issuedTo || (seat.status === 'Reserved' ? 'VIP Reserved' : 'Not Issued Yet');
+    }
+
+    // Dynamic Status Badge Rendering
+    if (seat.status === 'Occupied') {
+        modalStatus.innerText = 'Occupied (Paid)';
+        modalStatus.className = 'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-rose-500/20 text-rose-400 border border-rose-500/30';
+    } else if (seat.status === 'Assured') {
+        modalStatus.innerText = 'Assured (Unpaid)';
+        modalStatus.className = 'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30';
+    } else if (seat.status === 'Reserved') {
+        modalStatus.innerText = 'VIP Reserved';
+        modalStatus.className = 'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-purple-500/20 text-purple-400 border border-purple-500/30';
+    } else {
+        modalStatus.innerText = 'Unoccupied';
+        modalStatus.className = 'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+    }
+
+    seatModal.classList.remove('hidden');
+    setTimeout(() => {
+        seatModal.classList.remove('opacity-0');
+        modalCard.classList.remove('scale-95');
+        modalCard.classList.add('scale-100');
+    }, 10);
+}
+
+        function closeModal() {
+            modalCard.classList.remove('scale-100');
+            modalCard.classList.add('scale-95');
+            seatModal.classList.add('opacity-0');
+            setTimeout(() => {
+                seatModal.classList.add('hidden');
+            }, 200);
+        }
+
+        /**
+         * Filter & Search Handler
+         */
+        function applyFilters() {
+            const query = searchInput.value.trim().toUpperCase();
+            const selectedTier = tierFilter.value;
+
+            document.querySelectorAll('.seat').forEach(btn => {
+                const seatId = btn.dataset.id;
+                const seatTier = btn.dataset.tier;
+
+                const matchesQuery = query === '' || seatId.includes(query);
+                const matchesTier = selectedTier === 'ALL' || seatTier === selectedTier;
+
+                if (matchesQuery && matchesTier) {
+                    btn.classList.remove('dimmed');
+                    if (query !== '' && seatId === query) {
+                        btn.classList.add('highlighted');
+                    } else {
+                        btn.classList.remove('highlighted');
+                    }
+                } else {
+                    btn.classList.add('dimmed');
+                    btn.classList.remove('highlighted');
+                }
+            });
+        }
+
+        /**
+         * Zoom Controls
+         */
+        function updateZoom(newScale) {
+            zoomScale = Math.min(Math.max(newScale, 0.6), 1.6);
+            hallContainerEl.style.transform = `scale(${zoomScale})`;
+            document.getElementById('zoomLevel').innerText = `${Math.round(zoomScale * 100)}%`;
+        }
+
+        // Initialize Seating Chart Layout
+        function initLayout() {
+            // Render Front Section
+            frontRows.forEach(rowData => {
+                frontSectionEl.appendChild(createRowElement(rowData));
+            });
+
+            // Render Rear Section
+            rearRows.forEach(rowData => {
+                rearSectionEl.appendChild(createRowElement(rowData));
+            });
+
+            // Apply the default zoom (60% on mobile, 100% otherwise)
+            updateZoom(zoomScale);
+
+            // Event Listeners for Filters
+            searchInput.addEventListener('input', applyFilters);
+            tierFilter.addEventListener('change', applyFilters);
+
+            // Modal Close handlers
+            closeModalBtn.addEventListener('click', closeModal);
+            modalCloseBtn.addEventListener('click', closeModal);
+            seatModal.addEventListener('click', (e) => {
+                if (e.target === seatModal) closeModal();
+            });
+
+            // Zoom Listeners
+            document.getElementById('zoomIn').addEventListener('click', () => updateZoom(zoomScale + 0.15));
+            document.getElementById('zoomOut').addEventListener('click', () => updateZoom(zoomScale - 0.15));
+            document.getElementById('zoomReset').addEventListener('click', () => updateZoom(1.0));
+        }
+
+        // Mobile touch support: reliably translate horizontal swipes into hall scrolling.
+        const seatingViewport = document.getElementById('viewport');
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let lastTouchX = 0;
+        let horizontalTouchGesture = false;
+
+        seatingViewport.addEventListener('touchstart', (event) => {
+            if (!event.touches || event.touches.length !== 1) return;
+            touchStartX = lastTouchX = event.touches[0].clientX;
+            touchStartY = event.touches[0].clientY;
+            horizontalTouchGesture = false;
+        }, { passive: true });
+
+        seatingViewport.addEventListener('touchmove', (event) => {
+            if (!event.touches || event.touches.length !== 1) return;
+            const touch = event.touches[0];
+            const deltaX = touch.clientX - lastTouchX;
+            const totalX = touch.clientX - touchStartX;
+            const totalY = touch.clientY - touchStartY;
+
+            if (!horizontalTouchGesture && Math.abs(totalX) > 8 &&
+                Math.abs(totalX) > Math.abs(totalY) * 1.15) {
+                horizontalTouchGesture = true;
+            }
+
+            if (horizontalTouchGesture) {
+                if (event.cancelable) event.preventDefault();
+                seatingViewport.scrollLeft -= deltaX;
+            }
+            lastTouchX = touch.clientX;
+        }, { passive: false });
+
+        // Run Layout Generation on Page Load
+        window.addEventListener('DOMContentLoaded', initLayout);
+
+        // Paste your Web App Deployment URL here
+const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycby6EDhVdB43XtgvhhZ1XqUzCL0H5yUgSN4L4TqHCvqkaTVR8YJUn8DmNmCGaijp_dWhQg/exec";
+
+async function fetchLiveSeatData() {
+    if (!GOOGLE_SHEETS_API_URL || GOOGLE_SHEETS_API_URL.includes("YOUR_APPS_SCRIPT")) return;
+
+    try {
+        const response = await fetch(GOOGLE_SHEETS_API_URL);
+        const seatMap = await response.json();
+
+        allSeatsData.forEach((seatObj, seatId) => {
+            const btn = document.querySelector(`button[data-id="${seatId}"]`);
+            if (!btn) return;
+
+            const sheetEntry = seatMap[seatId];
+
+            if (sheetEntry) {
+                if (sheetEntry.status === "Paid") {
+                    seatObj.status = "Occupied";
+                    seatObj.issuedTo = sheetEntry.issuedTo || "Paid";
+                    
+                    btn.classList.add("occupied");
+                    btn.classList.remove("assured", "dimmed");
+
+                    // Update hover tooltip text
+                    btn.title = `Seat ${seatId} (${seatObj.tier.name}) - Occupied: ${seatObj.issuedTo}`;
+                } else if (sheetEntry.status === "Assured but not paid") {
+                    seatObj.status = "Assured";
+                    seatObj.issuedTo = sheetEntry.issuedTo || "Assured (Unpaid)";
+                    
+                    btn.classList.add("assured");
+                    btn.classList.remove("occupied", "dimmed");
+
+                    // Update hover tooltip text
+                    btn.title = `Seat ${seatId} (${seatObj.tier.name}) - Assured: ${seatObj.issuedTo}`;
+                } else {
+                    resetSeatState(seatObj, btn);
+                }
+            } else {
+                resetSeatState(seatObj, btn);
+            }
+        });
+    } catch (err) {
+        console.error("Error fetching live seat data:", err);
+    }
+}
+
+function resetSeatState(seatObj, btn) {
+    if (seatObj.status !== "Reserved") {
+        seatObj.status = "Unoccupied";
+        seatObj.issuedTo = "Not Issued Yet";
+        btn.classList.remove("occupied", "assured");
+
+        // Reset hover tooltip back to default
+        btn.title = `Seat ${seatObj.id} (${seatObj.tier.name}) - Unoccupied`;
+    }
+}
+
+function resetSeatState(seatObj, btn) {
+    if (seatObj.status !== "Reserved") {
+        seatObj.status = "Unoccupied";
+        seatObj.issuedTo = "Not Issued Yet";
+        btn.classList.remove("occupied", "assured");
+    }
+}
+
+// Helper to reset seats not in the sheet
+function resetToUnoccupied(seatObj, btn) {
+    if (seatObj.status !== "Reserved") {
+        seatObj.status = "Unoccupied";
+        seatObj.issuedTo = "Not Issued Yet";
+        btn.classList.remove("occupied", "assured");
+    }
+}
+
+// Update modal display to show 'Issued To' details from sheet
+const originalOpenSeatModal = openSeatModal;
+openSeatModal = function(seat) {
+    originalOpenSeatModal(seat);
+    const modalIssuedTo = document.getElementById('modalIssuedTo');
+    if (modalIssuedTo) {
+        modalIssuedTo.innerText = seat.issuedTo || (seat.status === 'Reserved' ? 'VIP Reserved' : 'Not Issued Yet');
+    }
+};
+
+// Auto-sync every 10 seconds
+setInterval(fetchLiveSeatData, 10000);
+
+// Run initial sync on page load
+window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(fetchLiveSeatData, 1000);
+});
+    </script>
+</body>
+</html>
